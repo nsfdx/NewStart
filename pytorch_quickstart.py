@@ -118,7 +118,6 @@ class SimpleClassifier(nn.Module):
         self.dropout = nn.Dropout(0.2)
         
     def forward(self, x):
-        # 前向传播
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
         x = F.relu(self.fc2(x))
@@ -135,6 +134,7 @@ print(model)
 
 # 计算参数数量
 total_params = sum(p.numel() for p in model.parameters())
+
 trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 print(f"总参数数: {total_params}")
 print(f"可训练参数数: {trainable_params}")
@@ -177,7 +177,9 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs):
             optimizer.zero_grad()
             
             # 前向传播
-            outputs = model(data)
+            outputs = model(data) #先调用nn.Module.__call__ 做了额外的管理工作后调用forward函数
+            #返回值 torch.Tensor 形状:(batch_size, num_classes) = (32, 2)，requires_grad=True (用于反向传播)
+
             loss = criterion(outputs, target)
             
             # 反向传播
@@ -187,10 +189,17 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs):
             optimizer.step()
             
             # 统计
-            running_loss += loss.item()
-            _, predicted = torch.max(outputs.data, 1)
-            total += target.size(0)
-            correct += (predicted == target).sum().item()
+            running_loss += loss.item() # item() 返回标量值
+            print(f"当前批次损失: {loss.item():.4f}, 累计损失: {running_loss:.4f}")
+            # outputs: torch.Tensor 形状:(batch_size, num_classes) = (32, 2)
+            # target: torch.Tensor 形状:(batch_size,) = (32,)
+            # predicted: torch.Tensor 形状:(batch_size,) = (32,)
+            _, predicted = torch.max(outputs.data, 1) # torch.max 返回最大值和索引
+
+            total += target.size(0) # target.size(0) 返回当前批次的样本数
+            print(f"当前批次样本数: {total}")
+            correct += (predicted == target).sum().item() # 计算正确预测的样本数
+            print(f"当前批次正确预测数: {correct}")
         
         # 计算平均损失和准确率
         epoch_loss = running_loss / len(train_loader)
